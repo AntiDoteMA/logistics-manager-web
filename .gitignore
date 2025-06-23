@@ -8,6 +8,13 @@
 # Python Source Files (keep backend private)
 #*.py
 
+# Specific directories to ignore
+my_py_app/
+
+# AI Worker instruction files
+*.old.ai.md
+*.inprocess.ai.md
+
 # Python Cache Files
 __pycache__/
 *.py[cod]
