@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Flowbite Admin{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="mb-4">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+    <p class="text-gray-600 dark:text-gray-400">Overview of your application metrics</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+    <!-- Total Users -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+                <i class="fas fa-users text-blue-600 dark:text-blue-400 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Users</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">1,249</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-green-500 text-sm font-medium">+12.5%</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">from last month</span>
+        </div>
+    </div>
+
+    <!-- Revenue -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-green-100 dark:bg-green-900">
+                <i class="fas fa-dollar-sign text-green-600 dark:text-green-400 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">$45,231</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-green-500 text-sm font-medium">+8.2%</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">from last month</span>
+        </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
+                <i class="fas fa-shopping-cart text-purple-600 dark:text-purple-400 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Orders</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">892</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-red-500 text-sm font-medium">-2.1%</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">from last month</span>
+        </div>
+    </div>
+
+    <!-- Products -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center">
+            <div class="p-3 rounded-full bg-orange-100 dark:bg-orange-900">
+                <i class="fas fa-box text-orange-600 dark:text-orange-400 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Products</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">156</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="text-green-500 text-sm font-medium">+5.4%</span>
+            <span class="text-gray-600 dark:text-gray-400 text-sm ml-2">from last month</span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts and Tables Row -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+    <!-- Sales Chart -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Sales Overview</h3>
+            <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
+                View all
+            </button>
+        </div>
+        <div class="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+            <div class="text-center">
+                <i class="fas fa-chart-line text-4xl text-gray-400 mb-2"></i>
+                <p class="text-gray-500 dark:text-gray-400">Chart placeholder</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500">Integration with Chart.js or similar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+            <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
+                View all
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0">
+                    <img class="h-8 w-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-1.jpg" alt="User">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        Neil Sims
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        Created a new user account
+                    </p>
+                </div>
+                <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
+                    2 min ago
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0">
+                    <img class="h-8 w-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-2.jpg" alt="User">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        Bonnie Green
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        Added a new product
+                    </p>
+                </div>
+                <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
+                    5 min ago
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0">
+                    <img class="h-8 w-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-3.jpg" alt="User">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        Michael Gough
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        Updated system settings
+                    </p>
+                </div>
+                <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
+                    10 min ago
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0">
+                    <img class="h-8 w-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-4.jpg" alt="User">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        Lana Byrd
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        Completed order #1234
+                    </p>
+                </div>
+                <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
+                    15 min ago
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Orders</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Order ID</th>
+                    <th scope="col" class="px-6 py-3">Customer</th>
+                    <th scope="col" class="px-6 py-3">Product</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Amount</th>
+                    <th scope="col" class="px-6 py-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">#1001</td>
+                    <td class="px-6 py-4">Neil Sims</td>
+                    <td class="px-6 py-4">iPhone 13 Pro</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                            Completed
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">$999.00</td>
+                    <td class="px-6 py-4">
+                        <button class="font-medium text-blue-600 dark:text-blue-500 hover:underline">View</button>
+                    </td>
+                </tr>
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">#1002</td>
+                    <td class="px-6 py-4">Bonnie Green</td>
+                    <td class="px-6 py-4">MacBook Pro</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
+                            Pending
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">$1,999.00</td>
+                    <td class="px-6 py-4">
+                        <button class="font-medium text-blue-600 dark:text-blue-500 hover:underline">View</button>
+                    </td>
+                </tr>
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">#1003</td>
+                    <td class="px-6 py-4">Michael Gough</td>
+                    <td class="px-6 py-4">iPad Air</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+                            Cancelled
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">$599.00</td>
+                    <td class="px-6 py-4">
+                        <button class="font-medium text-blue-600 dark:text-blue-500 hover:underline">View</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
