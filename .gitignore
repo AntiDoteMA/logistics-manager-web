@@ -8,6 +8,10 @@
 # Python Source Files (keep backend private)
 #*.py
 
+# Python Source Files
+test_*.py
+*_test.py
+
 # Specific directories to ignore
 my_py_app/
 
