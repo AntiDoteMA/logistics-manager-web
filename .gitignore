@@ -6,7 +6,7 @@
 .env.example
 
 # Python Source Files (keep backend private)
-#*.py
+*.py
 
 # Python Source Files
 test_*.py
