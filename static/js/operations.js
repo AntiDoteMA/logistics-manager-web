@@ -489,58 +489,234 @@ class OperationsManager {
         const confirmOperationBtn = document.getElementById('confirmOperationBtn');
         if (confirmOperationBtn) {
             confirmOperationBtn.addEventListener('click', () => this.confirmOperationAction());
-        }
-    }
+        }    }
 
     // ============================================================================
-    // Filter Dropdown Management    // ============================================================================
     // Filter Dropdown Management
     // ============================================================================
 
     populateClientFilterDropdown(clients) {
-        const clientFilter = document.getElementById('clientFilter');
-        if (!clientFilter) return;
+        const clientFilterDropdownList = document.getElementById('clientFilterDropdownList');
+        if (!clientFilterDropdownList) return;
         
-        // Clear existing options except the first "All Clients" option
-        while (clientFilter.children.length > 1) {
-            clientFilter.removeChild(clientFilter.lastChild);
-        }
+        // Clear existing options
+        clientFilterDropdownList.innerHTML = '';
         
         // Sort clients alphabetically for better UX
         const sortedClients = clients.sort((a, b) => a.name.localeCompare(b.name));
         
+        // Add "All Clients" option first
+        const allClientsLi = document.createElement('li');
+        allClientsLi.innerHTML = `
+            <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer client-filter-option" data-client-name="">
+                <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">All Clients</span>
+            </div>
+        `;
+        clientFilterDropdownList.appendChild(allClientsLi);
+        
         // Add client options
         sortedClients.forEach(client => {
-            const option = document.createElement('option');
-            option.value = client.name;
-            option.textContent = client.name;
-            clientFilter.appendChild(option);
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer client-filter-option" data-client-name="${client.name}">
+                    <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">${client.name}</span>
+                </div>
+            `;
+            clientFilterDropdownList.appendChild(li);
         });
+        
+        // Setup filter dropdown events
+        this.setupClientFilterDropdownEvents();
         
         console.log(`Loaded ${clients.length} clients into filter dropdown`);
     }
 
-    populateVendorFilterDropdown(vendors) {
-        const vendorFilter = document.getElementById('vendorFilter');
-        if (!vendorFilter) return;
+    setupClientFilterDropdownEvents() {
+        // Setup search functionality for client filter
+        const searchInput = document.getElementById('clientFilterSearchInput');
+        const clientFilterOptions = document.querySelectorAll('.client-filter-option');
+        const dropdownButton = document.getElementById('clientFilterDropdownButton');
+        const dropdownButtonText = document.getElementById('clientFilterDropdownButtonText');
+        const hiddenInput = document.getElementById('clientFilter');
+        const dropdown = document.getElementById('clientFilterDropdown');
         
-        // Clear existing options except the first "All Vendors" option
-        while (vendorFilter.children.length > 1) {
-            vendorFilter.removeChild(vendorFilter.lastChild);
+        // Dropdown toggle functionality
+        if (dropdownButton && dropdown) {
+            dropdownButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle dropdown visibility
+                if (dropdown.classList.contains('hidden')) {
+                    dropdown.classList.remove('hidden');
+                    // Focus on search input when opening
+                    if (searchInput) {
+                        setTimeout(() => searchInput.focus(), 100);
+                    }
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            });
         }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (dropdown && !dropdown.contains(e.target) && !dropdownButton.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Search functionality
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                clientFilterOptions.forEach(option => {
+                    const clientName = option.getAttribute('data-client-name').toLowerCase();
+                    const listItem = option.parentElement;
+                    
+                    if (clientName.includes(searchTerm) || clientName === '') { // Always show "All Clients"
+                        listItem.style.display = 'block';
+                    } else {
+                        listItem.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Client selection functionality
+        clientFilterOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                const clientName = e.currentTarget.getAttribute('data-client-name');
+                const displayText = clientName || 'All Clients';
+                
+                // Update the dropdown button text
+                dropdownButtonText.textContent = displayText;
+                dropdownButtonText.classList.remove('text-gray-500');
+                dropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
+                
+                // Update the hidden input value
+                hiddenInput.value = clientName;
+                
+                // Close the dropdown
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+                
+                console.log(`Selected client filter: ${clientName || 'All Clients'}`);
+            });
+        });
+    }    populateVendorFilterDropdown(vendors) {
+        const vendorFilterDropdownList = document.getElementById('vendorFilterDropdownList');
+        if (!vendorFilterDropdownList) return;
+        
+        // Clear existing options
+        vendorFilterDropdownList.innerHTML = '';
         
         // Sort vendors alphabetically for better UX
         const sortedVendors = vendors.sort((a, b) => a.name.localeCompare(b.name));
         
+        // Add "All Vendors" option first
+        const allVendorsLi = document.createElement('li');
+        allVendorsLi.innerHTML = `
+            <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer vendor-filter-option" data-vendor-name="">
+                <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">All Vendors</span>
+            </div>
+        `;
+        vendorFilterDropdownList.appendChild(allVendorsLi);
+        
         // Add vendor options
         sortedVendors.forEach(vendor => {
-            const option = document.createElement('option');
-            option.value = vendor.name;
-            option.textContent = vendor.name;
-            vendorFilter.appendChild(option);
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer vendor-filter-option" data-vendor-name="${vendor.name}">
+                    <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">${vendor.name}</span>
+                </div>
+            `;
+            vendorFilterDropdownList.appendChild(li);
         });
         
+        // Setup filter dropdown events
+        this.setupVendorFilterDropdownEvents();
+        
         console.log(`Loaded ${vendors.length} vendors into filter dropdown`);
+    }
+
+    setupVendorFilterDropdownEvents() {
+        // Setup search functionality for vendor filter
+        const searchInput = document.getElementById('vendorFilterSearchInput');
+        const vendorFilterOptions = document.querySelectorAll('.vendor-filter-option');
+        const dropdownButton = document.getElementById('vendorFilterDropdownButton');
+        const dropdownButtonText = document.getElementById('vendorFilterDropdownButtonText');
+        const hiddenInput = document.getElementById('vendorFilter');
+        const dropdown = document.getElementById('vendorFilterDropdown');
+        
+        // Dropdown toggle functionality
+        if (dropdownButton && dropdown) {
+            dropdownButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle dropdown visibility
+                if (dropdown.classList.contains('hidden')) {
+                    dropdown.classList.remove('hidden');
+                    // Focus on search input when opening
+                    if (searchInput) {
+                        setTimeout(() => searchInput.focus(), 100);
+                    }
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (dropdown && !dropdown.contains(e.target) && !dropdownButton.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Search functionality
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                vendorFilterOptions.forEach(option => {
+                    const vendorName = option.getAttribute('data-vendor-name').toLowerCase();
+                    const listItem = option.parentElement;
+                    
+                    if (vendorName.includes(searchTerm) || vendorName === '') { // Always show "All Vendors"
+                        listItem.style.display = 'block';
+                    } else {
+                        listItem.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Vendor selection functionality
+        vendorFilterOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                const vendorName = e.currentTarget.getAttribute('data-vendor-name');
+                const displayText = vendorName || 'All Vendors';
+                
+                // Update the dropdown button text
+                dropdownButtonText.textContent = displayText;
+                dropdownButtonText.classList.remove('text-gray-500');
+                dropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
+                
+                // Update the hidden input value
+                hiddenInput.value = vendorName;
+                
+                // Close the dropdown
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+                
+                console.log(`Selected vendor filter: ${vendorName || 'All Vendors'}`);
+            });
+        });
     }
 
     // ============================================================================
@@ -718,8 +894,27 @@ class OperationsManager {
             date_to: document.getElementById('dateToFilter')?.value || '',            operation_num: document.getElementById('operationIdFilter')?.value || ''
         };
     }    resetFilters() {
-        document.getElementById('clientFilter').value = '';
-        document.getElementById('vendorFilter').value = '';
+        // Reset client filter dropdown
+        const clientFilterInput = document.getElementById('clientFilter');
+        const clientFilterButtonText = document.getElementById('clientFilterDropdownButtonText');
+        if (clientFilterInput) clientFilterInput.value = '';
+        if (clientFilterButtonText) {
+            clientFilterButtonText.textContent = 'All Clients';
+            clientFilterButtonText.classList.add('text-gray-500');
+            clientFilterButtonText.classList.remove('text-gray-900', 'dark:text-white');
+        }
+        
+        // Reset vendor filter dropdown
+        const vendorFilterInput = document.getElementById('vendorFilter');
+        const vendorFilterButtonText = document.getElementById('vendorFilterDropdownButtonText');
+        if (vendorFilterInput) vendorFilterInput.value = '';
+        if (vendorFilterButtonText) {
+            vendorFilterButtonText.textContent = 'All Vendors';
+            vendorFilterButtonText.classList.add('text-gray-500');
+            vendorFilterButtonText.classList.remove('text-gray-900', 'dark:text-white');
+        }
+        
+        // Reset other filters
         document.getElementById('statusFilter').value = '';
         document.getElementById('dateFromFilter').value = '';
         document.getElementById('dateToFilter').value = '';
