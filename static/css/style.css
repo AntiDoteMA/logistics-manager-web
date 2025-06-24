@@ -334,6 +334,56 @@
     background-color: rgb(75 85 99);
 }
 
+/* Client Filter Dropdown Styles */
+.client-filter-dropdown-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgb(59 130 246 / 0.5);
+    border-color: rgb(59 130 246);
+}
+
+.client-filter-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid rgb(229 231 235);
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.client-filter-option:hover {
+    background-color: rgb(243 244 246);
+}
+
+.dark .client-filter-dropdown-menu {
+    background: rgb(55 65 81);
+    border-color: rgb(75 85 99);
+}
+
+.dark .client-filter-option:hover {
+    background-color: rgb(75 85 99);
+}
+
+#clientFilterDropdown {
+    transition: opacity 0.15s ease-out;
+    position: absolute !important;
+    top: 100% !important;
+    transform-origin: top center;
+}
+
+#clientFilterDropdown.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#clientFilterDropdown:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
 /* Smooth dropdown animations */
 #clientDropdown {
     transition: opacity 0.15s ease-out;
@@ -365,6 +415,56 @@
 }
 
 #vendorDropdown:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Vendor Filter Dropdown Styles */
+.vendor-filter-dropdown-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgb(59 130 246 / 0.5);
+    border-color: rgb(59 130 246);
+}
+
+.vendor-filter-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid rgb(229 231 235);
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.vendor-filter-option:hover {
+    background-color: rgb(243 244 246);
+}
+
+.dark .vendor-filter-dropdown-menu {
+    background: rgb(55 65 81);
+    border-color: rgb(75 85 99);
+}
+
+.dark .vendor-filter-option:hover {
+    background-color: rgb(75 85 99);
+}
+
+#vendorFilterDropdown {
+    transition: opacity 0.15s ease-out;
+    position: absolute !important;
+    top: 100% !important;
+    transform-origin: top center;
+}
+
+#vendorFilterDropdown.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+#vendorFilterDropdown:not(.hidden) {
     opacity: 1;
     visibility: visible;
 }
