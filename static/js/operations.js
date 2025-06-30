@@ -12,23 +12,40 @@
  * - JWT authentication handling
  */
 
+import ApiService from './modules/apiService.js';
+import OperationsApiService from './modules/OperationsApiService.js';
+import OperationsDropdownManager from './modules/OperationsDropdownManager.js';
+import OperationsModalManager from './modules/OperationsModalManager.js';
+import OperationsFilterManager from './modules/OperationsFilterManager.js';
+import OperationsTableRenderer from './modules/OperationsTableRenderer.js';
+import ToastManager from './modules/toastManager.js';
+
 class OperationsManager {
     constructor() {
         this.operationsData = [];
         this.currentEditingId = null;
         this.currentUser = null;
-        this.clientsData = []; // Store clients data globally
-        this.vendorsData = []; // Store vendors data globally
-          // API Configuration
-        this.apiBaseUrl = '/ajax/operations';
-        this.headers = {
-            'Content-Type': 'application/json'
-        };
+        this.clientsData = [];
+        this.vendorsData = [];
+        
+        // API Configuration
+        this.apiService = new ApiService('/ajax/operations', {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCsrfToken()
+        });
+        
+        this.operationsApiService = new OperationsApiService('/ajax/operations', {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCsrfToken()
+        });
         
         // DOM Elements
-        this.operationModal = null;
-        this.deleteModal = null;
-        this.confirmModal = null;
+        this.modalManager = new OperationsModalManager();
+        this.clientDropdownManager = new OperationsDropdownManager('client');
+        this.vendorDropdownManager = new OperationsDropdownManager('vendor');
+        this.clientFilterManager = new OperationsFilterManager('client');
+        this.vendorFilterManager = new OperationsFilterManager('vendor');
+        this.tableRenderer = new OperationsTableRenderer();
         
         this.init();
     }
@@ -40,44 +57,31 @@ class OperationsManager {
         } else {
             this.initializeComponents();
         }
-    }    initializeComponents() {
-        this.setupAuthToken();
-        this.setupModals();
-        this.setupEventListeners();
-        this.loadOperations();
-        this.loadClientsAndVendors(); // Load both clients and vendors once
+    }
+
+    async initializeComponents() {
+        try {
+            // Remove getCurrentUser call since no auth endpoint exists
+            this.modalManager.initializeModals();
+            this.setupEventListeners();
+            await this.loadOperations();
+            await this.loadClientsAndVendors();
+        } catch (error) {
+            console.error('Initialization error:', error);
+            ToastManager.showToast('Initialization failed: ' + error.message, 'error');
+        }
     }
 
     // ============================================================================
     // Authentication & Token Management
     // ============================================================================
 
-    setupAuthToken() {
-        // For web interface, we'll use session-based auth with CSRF protection
-        // Get CSRF token if available
+    getCsrfToken() {
         const csrfToken = document.querySelector('meta[name="csrf-token"]');
-        if (csrfToken) {
-            this.headers['X-CSRFToken'] = csrfToken.getAttribute('content');
-        }
+        return csrfToken ? csrfToken.getAttribute('content') : '';
     }
 
-    async getCurrentUser() {
-        if (this.currentUser) return this.currentUser;
-        
-        try {
-            const response = await fetch('/api/auth/me', {
-                headers: this.headers
-            });
-            
-            if (response.ok) {
-                this.currentUser = await response.json();
-                return this.currentUser;
-            }        } catch (error) {
-            console.error('Error fetching current user:', error);
-        }
-        return null;
-    }
-      isAdmin() {
+    isAdmin() {
         return this.currentUser && this.currentUser.role === 'admin';
     }
 
@@ -86,367 +90,20 @@ class OperationsManager {
     // ============================================================================
 
     async loadClientsAndVendors() {
-        // Load both clients and vendors once and store globally
-        await Promise.all([
-            this.loadClientsData(),
-            this.loadVendorsData()
-        ]);
-        
-        // Populate filter dropdowns after loading data
-        this.populateClientFilterDropdown(this.clientsData);
-        this.populateVendorFilterDropdown(this.vendorsData);
-    }
-
-    async loadClientsData() {
         try {
-            const response = await fetch('/ajax/clients/list', {
-                method: 'GET',
-                headers: this.headers
-            });
+            [this.clientsData, this.vendorsData] = await Promise.all([
+                this.apiService.loadClientsData(),
+                this.apiService.loadVendorsData()
+            ]);
             
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    this.clientsData = result.data;
-                    console.log(`Loaded ${this.clientsData.length} clients for global use`);
-                } else {
-                    console.error('Failed to load clients:', result.error);
-                    this.showToast('Failed to load clients', 'error');
-                }
-            } else {
-                console.error('Error loading clients:', response.status);
-                this.showToast('Error loading clients', 'error');
-            }
+            // Populate dropdowns and filters
+            this.clientDropdownManager.populateDropdown(this.clientsData);
+            this.vendorDropdownManager.populateDropdown(this.vendorsData);
+            this.clientFilterManager.populateFilterDropdown(this.clientsData);
+            this.vendorFilterManager.populateFilterDropdown(this.vendorsData);
         } catch (error) {
-            console.error('Error loading clients:', error);
-            this.showToast('Error loading clients', 'error');
-        }
-    }
-
-    async loadVendorsData() {
-        try {
-            const response = await fetch('/ajax/vendors/list', {
-                method: 'GET',
-                headers: this.headers
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    this.vendorsData = result.data;
-                    console.log(`Loaded ${this.vendorsData.length} vendors for global use`);
-                } else {
-                    console.error('Failed to load vendors:', result.error);
-                    this.showToast('Failed to load vendors', 'error');                }
-            } else {
-                console.error('Error loading vendors:', response.status);
-                this.showToast('Error loading vendors', 'error');
-            }        } catch (error) {
-            console.error('Error loading vendors:', error);
-            this.showToast('Error loading vendors', 'error');
-        }
-    }
-
-    // ============================================================================
-    // Client Management (Modal Dropdowns)
-    // ============================================================================
-    
-    populateClientDropdown(clients) {
-        // Populate the searchable client dropdown with options
-        const clientDropdownList = document.getElementById('clientDropdownList');
-        if (!clientDropdownList) return;
-        
-        // Clear existing options
-        clientDropdownList.innerHTML = '';
-        
-        // Don't overwrite the global data - it's already stored
-        
-        // Add client options
-        clients.forEach(client => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer client-option" data-client-id="${client.id}" data-client-name="${client.name}">
-                    <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">${client.name}</span>
-                </div>
-            `;
-            clientDropdownList.appendChild(li);
-        });
-        
-        // Add click event listeners to client options
-        this.setupClientDropdownEvents();
-        
-        console.log(`Populated ${clients.length} clients into modal dropdown`);
-    }
-      setupClientDropdownEvents() {
-        // Setup search functionality
-        const searchInput = document.getElementById('clientSearchInput');
-        const clientOptions = document.querySelectorAll('.client-option');
-        const dropdownButton = document.getElementById('clientDropdownButton');
-        const dropdownButtonText = document.getElementById('clientDropdownButtonText');
-        const hiddenInput = document.getElementById('clientName');
-        const dropdown = document.getElementById('clientDropdown');
-        
-        // Dropdown toggle functionality
-        if (dropdownButton && dropdown) {
-            dropdownButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Toggle dropdown visibility
-                if (dropdown.classList.contains('hidden')) {
-                    dropdown.classList.remove('hidden');
-                    // Focus on search input when opening
-                    if (searchInput) {
-                        setTimeout(() => searchInput.focus(), 100);
-                    }
-                } else {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (dropdown && !dropdown.contains(e.target) && !dropdownButton.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-        
-        // Search functionality
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                
-                clientOptions.forEach(option => {
-                    const clientName = option.getAttribute('data-client-name').toLowerCase();
-                    const listItem = option.parentElement;
-                    
-                    if (clientName.includes(searchTerm)) {
-                        listItem.style.display = 'block';
-                    } else {
-                        listItem.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Client selection functionality
-        clientOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                const clientId = e.currentTarget.getAttribute('data-client-id');
-                const clientName = e.currentTarget.getAttribute('data-client-name');
-                
-                // Update the dropdown button text
-                dropdownButtonText.textContent = clientName;
-                dropdownButtonText.classList.remove('text-gray-500');
-                dropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
-                
-                // Update the hidden input value
-                hiddenInput.value = clientName;
-                
-                // Close the dropdown
-                if (dropdown) {
-                    dropdown.classList.add('hidden');
-                }
-                
-                // Clear search input
-                if (searchInput) {
-                    searchInput.value = '';
-                    // Reset all options visibility
-                    clientOptions.forEach(opt => {
-                        opt.parentElement.style.display = 'block';
-                    });
-                }
-                
-                console.log(`Selected client: ${clientName} (ID: ${clientId})`);            });
-        });
-    }
-
-    // ============================================================================
-    // Vendor Management (Modal Dropdowns)
-    // ============================================================================
-
-    populateVendorDropdown(vendors) {
-        // Populate the searchable vendor dropdown with options
-        const vendorDropdownList = document.getElementById('vendorDropdownList');
-        if (!vendorDropdownList) return;
-        
-        // Clear existing options
-        vendorDropdownList.innerHTML = '';
-        
-        // Don't overwrite the global data - it's already stored
-        
-        // Add vendor options
-        vendors.forEach(vendor => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer vendor-option" data-vendor-id="${vendor.id}" data-vendor-name="${vendor.name}">
-                    <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">${vendor.name}</span>
-                </div>
-            `;
-            vendorDropdownList.appendChild(li);
-        });
-        
-        // Add click event listeners to vendor options
-        this.setupVendorDropdownEvents();
-        
-        console.log(`Populated ${vendors.length} vendors into modal dropdown`);
-    }
-
-    setupVendorDropdownEvents() {
-        // Setup search functionality
-        const searchInput = document.getElementById('vendorSearchInput');
-        const vendorOptions = document.querySelectorAll('.vendor-option');
-        const dropdownButton = document.getElementById('vendorDropdownButton');
-        const dropdownButtonText = document.getElementById('vendorDropdownButtonText');
-        const hiddenInput = document.getElementById('vendorName');
-        const dropdown = document.getElementById('vendorDropdown');
-        
-        // Dropdown toggle functionality
-        if (dropdownButton && dropdown) {
-            dropdownButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Toggle dropdown visibility
-                if (dropdown.classList.contains('hidden')) {
-                    dropdown.classList.remove('hidden');
-                    // Focus on search input when opening
-                    if (searchInput) {
-                        setTimeout(() => searchInput.focus(), 100);
-                    }
-                } else {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (dropdown && !dropdown.contains(e.target) && !dropdownButton.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-        
-        // Search functionality
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                
-                vendorOptions.forEach(option => {
-                    const vendorName = option.getAttribute('data-vendor-name').toLowerCase();
-                    const listItem = option.parentElement;
-                    
-                    if (vendorName.includes(searchTerm)) {
-                        listItem.style.display = 'block';
-                    } else {
-                        listItem.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Vendor selection functionality
-        vendorOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                const vendorId = e.currentTarget.getAttribute('data-vendor-id');
-                const vendorName = e.currentTarget.getAttribute('data-vendor-name');
-                
-                // Update the dropdown button text
-                dropdownButtonText.textContent = vendorName;
-                dropdownButtonText.classList.remove('text-gray-500');
-                dropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
-                
-                // Update the hidden input value
-                hiddenInput.value = vendorName;
-                
-                // Close the dropdown
-                if (dropdown) {
-                    dropdown.classList.add('hidden');
-                }
-                
-                // Clear search input
-                if (searchInput) {
-                    searchInput.value = '';
-                    // Reset all options visibility
-                    vendorOptions.forEach(opt => {
-                        opt.parentElement.style.display = 'block';
-                    });
-                }
-                
-                console.log(`Selected vendor: ${vendorName} (ID: ${vendorId})`);
-            });
-        });
-    }
-
-    // ============================================================================
-    // Flowbite Modal Setup
-    // ============================================================================
-      setupModals() {
-        // Wait for Flowbite to be available and initialize modals
-        const initializeModals = () => {
-            const operationModalEl = document.getElementById('operationModal');
-            const deleteModalEl = document.getElementById('deleteModal');
-            const confirmModalEl = document.getElementById('confirmModal');
-
-            if (typeof Modal !== 'undefined' && operationModalEl) {
-                // Create modal instances with proper accessibility configuration
-                this.operationModal = new Modal(operationModalEl, {
-                    placement: 'center',
-                    backdrop: 'dynamic',
-                    backdropClasses: 'bg-gray-900 bg-opacity-50 dark:bg-opacity-80 fixed inset-0 z-40',
-                    closable: true,
-                    onShow: () => {
-                        // Remove aria-hidden when modal is shown and manage focus properly
-                        operationModalEl.removeAttribute('aria-hidden');
-                    },
-                    onHide: () => {
-                        // Set aria-hidden when modal is hidden
-                        operationModalEl.setAttribute('aria-hidden', 'true');
-                    }
-                });
-                
-                if (deleteModalEl) {
-                    this.deleteModal = new Modal(deleteModalEl, {
-                        placement: 'center',
-                        backdrop: 'dynamic',
-                        backdropClasses: 'bg-gray-900 bg-opacity-50 dark:bg-opacity-80 fixed inset-0 z-40',
-                        closable: true,
-                        onShow: () => {
-                            deleteModalEl.removeAttribute('aria-hidden');
-                        },
-                        onHide: () => {
-                            deleteModalEl.setAttribute('aria-hidden', 'true');
-                        }
-                    });
-                }
-                
-                if (confirmModalEl) {
-                    this.confirmModal = new Modal(confirmModalEl, {
-                        placement: 'center',
-                        backdrop: 'dynamic',
-                        backdropClasses: 'bg-gray-900 bg-opacity-50 dark:bg-opacity-80 fixed inset-0 z-40',
-                        closable: true,
-                        onShow: () => {
-                            confirmModalEl.removeAttribute('aria-hidden');
-                        },
-                        onHide: () => {
-                            confirmModalEl.setAttribute('aria-hidden', 'true');
-                        }
-                    });
-                }
-
-                console.log('Operations modals initialized successfully');
-            } else {
-                console.log('Modal elements or Flowbite not ready, retrying...');
-                setTimeout(initializeModals, 100);
-            }
-        };
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeModals);
-        } else {
-            initializeModals();
+            console.error('Error loading clients/vendors:', error);
+            ToastManager.showToast('Error loading clients/vendors: ' + error.message, 'error');
         }
     }
 
@@ -459,7 +116,9 @@ class OperationsManager {
         const addOperationBtn = document.getElementById('addOperationBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const applyFiltersBtn = document.getElementById('applyFiltersBtn');
-        const resetFiltersBtn = document.getElementById('resetFiltersBtn');        if (addOperationBtn) addOperationBtn.addEventListener('click', () => this.openAddModal());
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+        
+        if (addOperationBtn) addOperationBtn.addEventListener('click', () => this.openAddModal());
         if (refreshBtn) refreshBtn.addEventListener('click', () => this.loadOperations());
         if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => this.applyFilters());
         if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', () => this.resetFilters());
@@ -485,272 +144,33 @@ class OperationsManager {
         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
         if (confirmDeleteBtn) {
             confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
-        }        // Confirm operation
+        }
+        
+        // Confirm operation
         const confirmOperationBtn = document.getElementById('confirmOperationBtn');
         if (confirmOperationBtn) {
             confirmOperationBtn.addEventListener('click', () => this.confirmOperationAction());
-        }    }
-
-    // ============================================================================
-    // Filter Dropdown Management
-    // ============================================================================
-
-    populateClientFilterDropdown(clients) {
-        const clientFilterDropdownList = document.getElementById('clientFilterDropdownList');
-        if (!clientFilterDropdownList) return;
-        
-        // Clear existing options
-        clientFilterDropdownList.innerHTML = '';
-        
-        // Sort clients alphabetically for better UX
-        const sortedClients = clients.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Add "All Clients" option first
-        const allClientsLi = document.createElement('li');
-        allClientsLi.innerHTML = `
-            <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer client-filter-option" data-client-name="">
-                <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">All Clients</span>
-            </div>
-        `;
-        clientFilterDropdownList.appendChild(allClientsLi);
-        
-        // Add client options
-        sortedClients.forEach(client => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer client-filter-option" data-client-name="${client.name}">
-                    <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">${client.name}</span>
-                </div>
-            `;
-            clientFilterDropdownList.appendChild(li);
-        });
-        
-        // Setup filter dropdown events
-        this.setupClientFilterDropdownEvents();
-        
-        console.log(`Loaded ${clients.length} clients into filter dropdown`);
-    }
-
-    setupClientFilterDropdownEvents() {
-        // Setup search functionality for client filter
-        const searchInput = document.getElementById('clientFilterSearchInput');
-        const clientFilterOptions = document.querySelectorAll('.client-filter-option');
-        const dropdownButton = document.getElementById('clientFilterDropdownButton');
-        const dropdownButtonText = document.getElementById('clientFilterDropdownButtonText');
-        const hiddenInput = document.getElementById('clientFilter');
-        const dropdown = document.getElementById('clientFilterDropdown');
-        
-        // Dropdown toggle functionality
-        if (dropdownButton && dropdown) {
-            dropdownButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Toggle dropdown visibility
-                if (dropdown.classList.contains('hidden')) {
-                    dropdown.classList.remove('hidden');
-                    // Focus on search input when opening
-                    if (searchInput) {
-                        setTimeout(() => searchInput.focus(), 100);
-                    }
-                } else {
-                    dropdown.classList.add('hidden');
-                }
-            });
         }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (dropdown && !dropdown.contains(e.target) && !dropdownButton.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-        
-        // Search functionality
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                
-                clientFilterOptions.forEach(option => {
-                    const clientName = option.getAttribute('data-client-name').toLowerCase();
-                    const listItem = option.parentElement;
-                    
-                    if (clientName.includes(searchTerm) || clientName === '') { // Always show "All Clients"
-                        listItem.style.display = 'block';
-                    } else {
-                        listItem.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Client selection functionality
-        clientFilterOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                const clientName = e.currentTarget.getAttribute('data-client-name');
-                const displayText = clientName || 'All Clients';
-                
-                // Update the dropdown button text
-                dropdownButtonText.textContent = displayText;
-                dropdownButtonText.classList.remove('text-gray-500');
-                dropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
-                
-                // Update the hidden input value
-                hiddenInput.value = clientName;
-                
-                // Close the dropdown
-                if (dropdown) {
-                    dropdown.classList.add('hidden');
-                }
-                
-                console.log(`Selected client filter: ${clientName || 'All Clients'}`);
-            });
-        });
-    }    populateVendorFilterDropdown(vendors) {
-        const vendorFilterDropdownList = document.getElementById('vendorFilterDropdownList');
-        if (!vendorFilterDropdownList) return;
-        
-        // Clear existing options
-        vendorFilterDropdownList.innerHTML = '';
-        
-        // Sort vendors alphabetically for better UX
-        const sortedVendors = vendors.sort((a, b) => a.name.localeCompare(b.name));
-        
-        // Add "All Vendors" option first
-        const allVendorsLi = document.createElement('li');
-        allVendorsLi.innerHTML = `
-            <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer vendor-filter-option" data-vendor-name="">
-                <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">All Vendors</span>
-            </div>
-        `;
-        vendorFilterDropdownList.appendChild(allVendorsLi);
-        
-        // Add vendor options
-        sortedVendors.forEach(vendor => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="flex items-center px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer vendor-filter-option" data-vendor-name="${vendor.name}">
-                    <span class="w-full text-sm font-medium text-gray-900 dark:text-gray-300">${vendor.name}</span>
-                </div>
-            `;
-            vendorFilterDropdownList.appendChild(li);
-        });
-        
-        // Setup filter dropdown events
-        this.setupVendorFilterDropdownEvents();
-        
-        console.log(`Loaded ${vendors.length} vendors into filter dropdown`);
-    }
-
-    setupVendorFilterDropdownEvents() {
-        // Setup search functionality for vendor filter
-        const searchInput = document.getElementById('vendorFilterSearchInput');
-        const vendorFilterOptions = document.querySelectorAll('.vendor-filter-option');
-        const dropdownButton = document.getElementById('vendorFilterDropdownButton');
-        const dropdownButtonText = document.getElementById('vendorFilterDropdownButtonText');
-        const hiddenInput = document.getElementById('vendorFilter');
-        const dropdown = document.getElementById('vendorFilterDropdown');
-        
-        // Dropdown toggle functionality
-        if (dropdownButton && dropdown) {
-            dropdownButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Toggle dropdown visibility
-                if (dropdown.classList.contains('hidden')) {
-                    dropdown.classList.remove('hidden');
-                    // Focus on search input when opening
-                    if (searchInput) {
-                        setTimeout(() => searchInput.focus(), 100);
-                    }
-                } else {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (dropdown && !dropdown.contains(e.target) && !dropdownButton.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-        
-        // Search functionality
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                
-                vendorFilterOptions.forEach(option => {
-                    const vendorName = option.getAttribute('data-vendor-name').toLowerCase();
-                    const listItem = option.parentElement;
-                    
-                    if (vendorName.includes(searchTerm) || vendorName === '') { // Always show "All Vendors"
-                        listItem.style.display = 'block';
-                    } else {
-                        listItem.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Vendor selection functionality
-        vendorFilterOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                const vendorName = e.currentTarget.getAttribute('data-vendor-name');
-                const displayText = vendorName || 'All Vendors';
-                
-                // Update the dropdown button text
-                dropdownButtonText.textContent = displayText;
-                dropdownButtonText.classList.remove('text-gray-500');
-                dropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
-                
-                // Update the hidden input value
-                hiddenInput.value = vendorName;
-                
-                // Close the dropdown
-                if (dropdown) {
-                    dropdown.classList.add('hidden');
-                }
-                
-                console.log(`Selected vendor filter: ${vendorName || 'All Vendors'}`);
-            });
-        });
     }
 
     // ============================================================================
     // API Operations
     // ============================================================================
-    // ============================================================================
 
     async loadOperations() {
         try {
-            this.showLoadingSpinner();
-            
-            const response = await fetch(this.apiBaseUrl, {
-                method: 'GET',
-                headers: this.headers,
-                credentials: 'same-origin' // Include session cookies
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                this.operationsData = result.data || [];
-                this.renderOperationsTable();
-                this.showToast('Operations loaded successfully', 'success');
-            } else if (response.status === 401) {
-                this.showToast('Please log in to view operations', 'error');
-                // Redirect to login if needed
-                window.location.href = '/login';
-            } else {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            this.tableRenderer.showLoadingSpinner();
+            this.operationsData = await this.operationsApiService.loadOperations();
+            this.tableRenderer.setOperationsData(this.operationsData);
+            this.tableRenderer.renderOperationsTable();
+            ToastManager.showToast('Operations loaded successfully', 'success');
         } catch (error) {
             console.error('Error loading operations:', error);
-            this.showToast('Error loading operations: ' + error.message, 'error');
-        } finally {
-            this.hideLoadingSpinner();
+            ToastManager.showToast('Error loading operations: ' + error.message, 'error');
+            
+            if (error.message.includes('log in')) {
+                window.location.href = '/login';
+            }
         }
     }
 
@@ -761,127 +181,86 @@ class OperationsManager {
             const formData = new FormData(event.target);
             const operationData = this.buildOperationDataFromForm(formData);
             
-            // Validate required fields
             if (!this.validateOperationData(operationData)) {
                 return;
             }
 
-            const isEdit = this.currentEditingId !== null;            const url = isEdit ? `${this.apiBaseUrl}/${this.currentEditingId}` : this.apiBaseUrl;
-            const method = isEdit ? 'PUT' : 'POST';
+            const isEdit = this.currentEditingId !== null;
+            const result = await this.operationsApiService.saveOperation(
+                operationData, 
+                isEdit, 
+                this.currentEditingId
+            );
             
-            const response = await fetch(url, {
-                method: method,
-                headers: this.headers,
-                body: JSON.stringify(operationData),
-                credentials: 'same-origin' // Include session cookies
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                this.showToast(result.message || `Operation ${isEdit ? 'updated' : 'created'} successfully`, 'success');
-                this.closeModal();
-                this.loadOperations(); // Refresh the table
-            } else {
-                const error = await response.json();
-                this.showToast('Error: ' + (error.error || 'Unknown error'), 'error');
-            }
+            ToastManager.showToast(result.message || `Operation ${isEdit ? 'updated' : 'created'} successfully`, 'success');
+            this.closeModal();
+            this.loadOperations();
         } catch (error) {
-            console.error('Error saving operation:', error);            this.showToast('Error saving operation: ' + error.message, 'error');
+            console.error('Error saving operation:', error);
+            ToastManager.showToast('Error saving operation: ' + error.message, 'error');
         }
     }
 
     async deleteOperation(operationNum) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/${operationNum}`, {
-                method: 'DELETE',
-                headers: this.headers,
-                credentials: 'same-origin' // Include session cookies
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                this.showToast(result.message || 'Operation deleted successfully', 'success');
-                this.loadOperations(); // Refresh the table
-            } else {
-                const error = await response.json();
-                this.showToast('Error: ' + (error.error || 'Failed to delete operation'), 'error');
-            }
-        } catch (error) {            console.error('Error deleting operation:', error);
-            this.showToast('Error deleting operation: ' + error.message, 'error');
+            const result = await this.operationsApiService.deleteOperation(operationNum);
+            ToastManager.showToast(result.message || 'Operation deleted successfully', 'success');
+            this.loadOperations();
+        } catch (error) {
+            console.error('Error deleting operation:', error);
+            ToastManager.showToast('Error deleting operation: ' + error.message, 'error');
         }
     }
 
     async confirmOperation(operationNum) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/${operationNum}/confirm`, {
-                method: 'PUT',
-                headers: this.headers,
-                credentials: 'same-origin' // Include session cookies
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                this.showToast(result.message || 'Operation confirmed successfully', 'success');
-                this.loadOperations(); // Refresh the table
-            } else {
-                const error = await response.json();
-                this.showToast('Error: ' + (error.error || 'Failed to confirm operation'), 'error');
-            }
+            const result = await this.operationsApiService.confirmOperation(operationNum);
+            ToastManager.showToast(result.message || 'Operation confirmed successfully', 'success');
+            this.loadOperations();
         } catch (error) {
             console.error('Error confirming operation:', error);
-            this.showToast('Error confirming operation: ' + error.message, 'error');
+            ToastManager.showToast('Error confirming operation: ' + error.message, 'error');
         }
-    }    // ============================================================================
+    }
+
+    // ============================================================================
     // Data Filtering
     // ============================================================================
-      async applyFilters() {
-        const filters = this.getFilterValues();
-        
-        // Count active filters and create descriptive list
-        const activeFiltersList = [];
-        if (filters.client_name) activeFiltersList.push(`Client: ${filters.client_name}`);
-        if (filters.vendor_name) activeFiltersList.push(`Vendor: ${filters.vendor_name}`);
-        if (filters.status) activeFiltersList.push(`Status: ${filters.status}`);
-        if (filters.date_from) activeFiltersList.push(`From: ${filters.date_from}`);
-        if (filters.date_to) activeFiltersList.push(`To: ${filters.date_to}`);
-        if (filters.operation_num) activeFiltersList.push(`Operation: ${filters.operation_num}`);
-        
-        const activeFilters = activeFiltersList.length;
-        
+
+    async applyFilters() {
         try {
+            const filters = this.getFilterValues();
             const queryParams = new URLSearchParams();
             
             Object.keys(filters).forEach(key => {
-                if (filters[key]) {
-                    queryParams.append(key, filters[key]);
-                }
+                if (filters[key]) queryParams.append(key, filters[key]);
             });
 
-            const url = `${this.apiBaseUrl}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-              const response = await fetch(url, {
+            const url = `/ajax/operations?${queryParams.toString()}`;
+            const response = await fetch(url, {
                 method: 'GET',
-                headers: this.headers,
-                credentials: 'same-origin' // Include session cookies
+                headers: this.apiService.headers,
+                credentials: 'same-origin'
             });
 
             if (response.ok) {
                 const result = await response.json();
                 this.operationsData = result.data || [];
-                this.renderOperationsTable();
+                this.tableRenderer.setOperationsData(this.operationsData);
+                this.tableRenderer.renderOperationsTable();
                 
-                if (activeFilters > 0) {
-                    const filterDescription = activeFiltersList.length <= 2 
-                        ? activeFiltersList.join(', ')
-                        : `${activeFiltersList.length} filters`;
-                    this.showToast(`Found ${this.operationsData.length} operations with ${filterDescription}`, 'info');
-                } else {
-                    this.showToast('All operations loaded (no filters active)', 'info');
-                }
+                const activeFilters = Object.values(filters).filter(val => val).length;
+                const message = activeFilters > 0 
+                    ? `Found ${this.operationsData.length} operations with ${activeFilters} filters`
+                    : 'All operations loaded (no filters active)';
+                
+                ToastManager.showToast(message, 'info');
             } else {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }        } catch (error) {
+            }
+        } catch (error) {
             console.error('Error applying filters:', error);
-            this.showToast('Error applying filters: ' + error.message, 'error');
+            ToastManager.showToast('Error applying filters: ' + error.message, 'error');
         }
     }
 
@@ -891,9 +270,12 @@ class OperationsManager {
             vendor_name: document.getElementById('vendorFilter')?.value || '',
             status: document.getElementById('statusFilter')?.value || '',
             date_from: document.getElementById('dateFromFilter')?.value || '',
-            date_to: document.getElementById('dateToFilter')?.value || '',            operation_num: document.getElementById('operationIdFilter')?.value || ''
+            date_to: document.getElementById('dateToFilter')?.value || '',
+            operation_num: document.getElementById('operationIdFilter')?.value || ''
         };
-    }    resetFilters() {
+    }
+
+    resetFilters() {
         // Reset client filter dropdown
         const clientFilterInput = document.getElementById('clientFilter');
         const clientFilterButtonText = document.getElementById('clientFilterDropdownButtonText');
@@ -921,157 +303,43 @@ class OperationsManager {
         document.getElementById('operationIdFilter').value = '';
         
         this.loadOperations();
-        this.showToast('Filters reset', 'info');
-    }
-
-    // ============================================================================
-    // Table Rendering
-    // ============================================================================
-
-    renderOperationsTable() {
-        const tbody = document.getElementById('operationsTableBody');
-        if (!tbody) return;
-
-        tbody.innerHTML = '';
-
-        if (this.operationsData.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="18" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                        <div class="flex flex-col items-center">
-                            <svg class="w-12 h-12 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H7a1 1 0 00-1 1v1M9 7h6"></path>
-                            </svg>
-                            <p class="text-lg font-medium">No operations found</p>
-                            <p class="text-sm">Create your first operation to get started</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        this.operationsData.forEach(operation => {
-            const row = this.createOperationRow(operation);
-            tbody.appendChild(row);
-        });
-    }
-
-    createOperationRow(operation) {
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200';
-        
-        const isConfirmed = operation.is_confirmed;
-        const statusClass = isConfirmed 
-            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-
-        const statusText = isConfirmed ? 'Confirmed' : 'Not Confirmed';
-
-        row.innerHTML = `
-            <td class="px-4 py-3">
-                <div class="flex items-center space-x-2">
-                    <button onclick="operationsManager.openEditModal('${operation.operation_num}')" 
-                            class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 transition-colors duration-200"
-                            title="Edit Operation">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                    </button>
-                    ${!isConfirmed ? `
-                    <button onclick="operationsManager.openConfirmModal('${operation.operation_num}')" 
-                            class="inline-flex items-center px-2 py-1 text-xs font-medium text-green-600 bg-green-100 rounded-lg hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 transition-colors duration-200"
-                            title="Confirm Operation">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </button>
-                    ` : ''}
-                    <button onclick="operationsManager.openDeleteModal('${operation.operation_num}')" 
-                            class="inline-flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 transition-colors duration-200"
-                            title="Delete Operation">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
-                </div>
-            </td>
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${operation.operation_id || ''}</td>
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${operation.operation_num || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.client_name || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${this.formatDate(operation.operation_date)}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.description || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.reference || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.flux || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${this.formatDate(operation.positioning_date)}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.shipper_city || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.receiver_city || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${this.formatDate(operation.loading_date)}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${this.formatDateTime(operation.eta)}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${this.formatDateTime(operation.unloading_date)}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.vendor_name || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.sr || ''}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${operation.cmr || ''}</td>
-            <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
-                    ${statusText}
-                </span>
-            </td>
-        `;        return row;
+        ToastManager.showToast('Filters reset', 'info');
     }
 
     // ============================================================================
     // Modal Operations
     // ============================================================================
+
     async openAddModal() {
         this.currentEditingId = null;
         this.clearForm();
         
-        // Use pre-loaded data for the dropdowns (no API calls needed)
-        this.populateClientDropdown(this.clientsData);
-        this.populateVendorDropdown(this.vendorsData);
-        
         // Generate new operation number
-        await this.generateOperationNumber();
-        
+        try {
+            const operationNum = await this.operationsApiService.generateOperationNumber();
+            document.getElementById('operationNum').value = operationNum;
+        } catch (error) {
+            console.error('Error generating operation number:', error);
+        }
+
         document.getElementById('modalTitle').textContent = 'Add New Operation';
         document.getElementById('saveOperationBtn').textContent = 'Create Operation';
-        
-        if (this.operationModal) {
-            this.operationModal.show();
-        } else {
-            console.error('operationModal is not initialized');
-            // Fallback: try to show modal using direct DOM manipulation
-            const modalEl = document.getElementById('operationModal');            if (modalEl) {
-                modalEl.classList.remove('hidden');
-                modalEl.classList.add('flex');
-                modalEl.removeAttribute('aria-hidden');
-            }
-        }
+        this.modalManager.showModal('operation');
     }
 
     async openEditModal(operationNum) {
         this.currentEditingId = operationNum;
-        
         const operation = this.operationsData.find(op => op.operation_num === operationNum);
+        
         if (!operation) {
-            this.showToast('Operation not found', 'error');
+            ToastManager.showToast('Operation not found', 'error');
             return;
         }
 
-        // Use pre-loaded data for the dropdowns (no API calls needed)
-        this.populateClientDropdown(this.clientsData);
-        this.populateVendorDropdown(this.vendorsData);
-        
-        // Then populate the form with operation data
         this.populateForm(operation);
-        
         document.getElementById('modalTitle').textContent = 'Edit Operation';
         document.getElementById('saveOperationBtn').textContent = 'Update Operation';
-        
-        if (this.operationModal) {
-            this.operationModal.show();
-        }
+        this.modalManager.showModal('operation');
     }
 
     openDeleteModal(operationNum) {
@@ -1083,9 +351,7 @@ class OperationsManager {
                 `Are you sure you want to delete operation "${operation.operation_num}"? This action cannot be undone.`;
         }
         
-        if (this.deleteModal) {
-            this.deleteModal.show();
-        }
+        this.modalManager.showModal('delete');
     }
 
     openConfirmModal(operationNum) {
@@ -1097,49 +363,18 @@ class OperationsManager {
                 `Are you sure you want to confirm operation "${operation.operation_num}"? This will change its status to confirmed.`;
         }
         
-        if (this.confirmModal) {
-            this.confirmModal.show();
-        }
+        this.modalManager.showModal('confirm');
     }
-      closeModal() {
-        if (this.operationModal) {
-            this.operationModal.hide();
-        } else {
-            // Fallback: hide modal using direct DOM manipulation
-            const modalEl = document.getElementById('operationModal');
-            if (modalEl) {
-                modalEl.classList.add('hidden');
-                modalEl.classList.remove('flex');
-            }
-        }
-        
-        if (this.deleteModal) {
-            this.deleteModal.hide();
-        } else {
-            // Fallback: hide delete modal using direct DOM manipulation  
-            const deleteModalEl = document.getElementById('deleteModal');
-            if (deleteModalEl) {
-                deleteModalEl.classList.add('hidden');
-                deleteModalEl.classList.remove('flex');
-            }
-        }
-        
-        if (this.confirmModal) {
-            this.confirmModal.hide();
-        }
-        
+
+    closeModal() {
+        this.modalManager.hideModal('operation');
+        this.modalManager.hideModal('delete');
+        this.modalManager.hideModal('confirm');
         this.currentEditingId = null;
-    }    closeDeleteModal() {
-        if (this.deleteModal) {
-            this.deleteModal.hide();
-        } else {
-            // Fallback: hide modal using direct DOM manipulation
-            const deleteModalEl = document.getElementById('deleteModal');
-            if (deleteModalEl) {
-                deleteModalEl.classList.add('hidden');
-                deleteModalEl.classList.remove('flex');
-            }
-        }
+    }
+
+    closeDeleteModal() {
+        this.modalManager.hideModal('delete');
         this.currentEditingId = null;
     }
 
@@ -1155,41 +390,35 @@ class OperationsManager {
             await this.confirmOperation(this.currentEditingId);
             this.closeModal();
         }
-    }    // ============================================================================
+    }
+
+    // ============================================================================
     // Form Handling
     // ============================================================================
     
     clearForm() {
         const form = document.getElementById('operationForm');
-        if (form) {
-            form.reset();
-        }
+        if (form) form.reset();
         
-        // Reset the client and vendor dropdowns
-        const clientDropdownButtonText = document.getElementById('clientDropdownButtonText');
-        const clientHiddenInput = document.getElementById('clientName');
-        const vendorDropdownButtonText = document.getElementById('vendorDropdownButtonText');
-        const vendorHiddenInput = document.getElementById('vendorName');
+        // Reset dropdowns
+        const resetDropdown = (type) => {
+            const buttonText = document.getElementById(`${type}DropdownButtonText`);
+            const hiddenInput = document.getElementById(`${type}Name`);
+            
+            if (buttonText) {
+                buttonText.textContent = `Select a ${type}...`;
+                buttonText.classList.remove('text-gray-900', 'dark:text-white');
+                buttonText.classList.add('text-gray-500');
+            }
+            
+            if (hiddenInput) hiddenInput.value = '';
+        };
         
-        if (clientDropdownButtonText) {
-            clientDropdownButtonText.textContent = 'Select a client...';
-            clientDropdownButtonText.classList.remove('text-gray-900', 'dark:text-white');
-            clientDropdownButtonText.classList.add('text-gray-500');
-        }        
-        if (clientHiddenInput) {
-            clientHiddenInput.value = '';
-        }
-        
-        if (vendorDropdownButtonText) {
-            vendorDropdownButtonText.textContent = 'Select a vendor...';
-            vendorDropdownButtonText.classList.remove('text-gray-900', 'dark:text-white');
-            vendorDropdownButtonText.classList.add('text-gray-500');
-        }        
-        if (vendorHiddenInput) {
-            vendorHiddenInput.value = '';
-        }
+        resetDropdown('client');
+        resetDropdown('vendor');
     }
-      populateForm(operation) {
+    
+    populateForm(operation) {
         const fields = [
             { id: 'operationNum', value: operation.operation_num },
             { id: 'operationDate', value: this.formatDateForInput(operation.operation_date) },
@@ -1209,30 +438,24 @@ class OperationsManager {
 
         fields.forEach(field => {
             const element = document.getElementById(field.id);
-            if (element) {
-                element.value = field.value || '';
-            }
+            if (element) element.value = field.value || '';
         });
         
-        // Handle client and vendor dropdowns separately
-        const clientDropdownButtonText = document.getElementById('clientDropdownButtonText');
-        const clientHiddenInput = document.getElementById('clientName');
-        const vendorDropdownButtonText = document.getElementById('vendorDropdownButtonText');
-        const vendorHiddenInput = document.getElementById('vendorName');
+        // Set dropdown values
+        const setDropdown = (type, value) => {
+            const buttonText = document.getElementById(`${type}DropdownButtonText`);
+            const hiddenInput = document.getElementById(`${type}Name`);
+            
+            if (value && buttonText && hiddenInput) {
+                buttonText.textContent = value;
+                buttonText.classList.remove('text-gray-500');
+                buttonText.classList.add('text-gray-900', 'dark:text-white');
+                hiddenInput.value = value;
+            }
+        };
         
-        if (operation.client_name && clientDropdownButtonText && clientHiddenInput) {
-            clientDropdownButtonText.textContent = operation.client_name;
-            clientDropdownButtonText.classList.remove('text-gray-500');
-            clientDropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
-            clientHiddenInput.value = operation.client_name;
-        }
-        
-        if (operation.vendor_name && vendorDropdownButtonText && vendorHiddenInput) {
-            vendorDropdownButtonText.textContent = operation.vendor_name;
-            vendorDropdownButtonText.classList.remove('text-gray-500');
-            vendorDropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
-            vendorHiddenInput.value = operation.vendor_name;
-        }
+        setDropdown('client', operation.client_name);
+        setDropdown('vendor', operation.vendor_name);
     }
     
     buildOperationDataFromForm(formData) {
@@ -1261,47 +484,16 @@ class OperationsManager {
         const missingFields = requiredFields.filter(field => !data[field]);
         
         if (missingFields.length > 0) {
-            this.showToast(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+            ToastManager.showToast(`Missing required fields: ${missingFields.join(', ')}`, 'error');
             return false;
         }
         
         return true;
     }
-    
-    async generateOperationNumber() {
-        try {
-            const response = await fetch('/ajax/operations/generate-id', {
-                headers: this.headers,
-                credentials: 'same-origin' // Include session cookies
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                const operationNumField = document.getElementById('operationNum');
-                if (operationNumField) {
-                    operationNumField.value = result.operation_num;
-                }
-            }
-        } catch (error) {
-            console.error('Error generating operation number:', error);
-        }
-    }
 
     // ============================================================================
     // Utility Functions
     // ============================================================================
-
-    formatDate(dateStr) {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-GB');
-    }
-
-    formatDateTime(dateTimeStr) {
-        if (!dateTimeStr) return '';
-        const date = new Date(dateTimeStr);
-        return date.toLocaleString('en-GB');
-    }
 
     formatDateForInput(dateStr) {
         if (!dateStr) return '';
@@ -1314,77 +506,15 @@ class OperationsManager {
         const date = new Date(dateTimeStr);
         return date.toISOString().slice(0, 16);
     }
-
-    showLoadingSpinner() {
-        const tbody = document.getElementById('operationsTableBody');
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="18" class="px-4 py-8 text-center">
-                        <div class="flex items-center justify-center">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Loading operations...
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }
-    }
-
-    hideLoadingSpinner() {
-        // The loading spinner will be replaced when renderOperationsTable() is called
-    }
-
-    showToast(message, type = 'info') {
-        // Use Flowbite Toast component
-        const toastId = 'toast-' + Date.now();
-        const icons = {
-            success: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>`,
-            error: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`,
-            warning: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>`,
-            info: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>`
-        };
-        
-        const colors = {
-            success: 'text-green-500 bg-green-100 dark:bg-green-800 dark:text-green-200',
-            error: 'text-red-500 bg-red-100 dark:bg-red-800 dark:text-red-200',
-            warning: 'text-orange-500 bg-orange-100 dark:bg-orange-700 dark:text-orange-200',
-            info: 'text-blue-500 bg-blue-100 dark:bg-blue-800 dark:text-blue-200'
-        };
-
-        const toast = document.createElement('div');
-        toast.id = toastId;
-        toast.className = `flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow dark:text-gray-400 dark:bg-gray-800 fixed top-5 right-5 z-50`;
-        toast.innerHTML = `
-            <div class="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 ${colors[type]} rounded-lg">
-                ${icons[type]}
-            </div>
-            <div class="ml-3 text-sm font-normal">${message}</div>
-            <button type="button" class="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700" onclick="document.getElementById('${toastId}').remove()">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        `;
-
-        document.body.appendChild(toast);
-
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            toast.remove();
-        }, 5000);
-    }
 }
 
 // Initialize the operations manager when DOM is ready
-let operationsManager;
+window.operationsManager = null;
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        operationsManager = new OperationsManager();
+        window.operationsManager = new OperationsManager();
     });
 } else {
-    operationsManager = new OperationsManager();
+    window.operationsManager = new OperationsManager();
 }
