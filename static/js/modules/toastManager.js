@@ -39,4 +39,6 @@ class ToastManager {
     }
 }
 
+// Make ToastManager available globally and as ES6 export
+window.ToastManager = ToastManager;
 export default ToastManager;
