@@ -130,8 +130,14 @@ class InvoicesTableRenderer {
 
         row.querySelectorAll('button').forEach(button => {
             button.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
-                onAction(action, invoice.id);
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Get the action from the button, not the clicked element (in case SVG is clicked)
+                const action = button.dataset.action;
+                if (action) {
+                    onAction(action, invoice.id);
+                }
             });
         });
 
