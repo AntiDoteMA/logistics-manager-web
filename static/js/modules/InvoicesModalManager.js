@@ -17,6 +17,7 @@ class InvoicesModalManager {
         this.title = document.getElementById('invoiceModalTitle');
         this.saveButton = document.getElementById('saveInvoiceBtn');
         this.currentInvoiceId = null;
+        this.operationInputTimeout = null; // For debouncing operation input
 
         // Client dropdown elements
         this.clientDropdownButton = document.getElementById('clientModalDropdownButton');
@@ -57,6 +58,10 @@ class InvoicesModalManager {
             e.preventDefault();
             const formData = new FormData(this.form);
             const data = Object.fromEntries(formData.entries());
+            
+            // Structure the products data as expected by the backend
+            this.processProductsData(data);
+            
             this.onSave(data, this.currentInvoiceId);
         });
 
@@ -128,6 +133,28 @@ class InvoicesModalManager {
             e.preventDefault();
             this._showOperationSelector();
         });
+
+        // Auto-fill functionality when operation number changes
+        if (this.operationNumInput) {
+            this.operationNumInput.addEventListener('change', (event) => {
+                const operationNum = event.target.value.trim();
+                if (operationNum) {
+                    this.fetchOperationData(operationNum);
+                }
+            });
+
+            // Also trigger on input (for manual typing)
+            this.operationNumInput.addEventListener('input', (event) => {
+                const operationNum = event.target.value.trim();
+                // Only trigger after a short delay to avoid excessive requests
+                clearTimeout(this.operationInputTimeout);
+                this.operationInputTimeout = setTimeout(() => {
+                    if (operationNum) {
+                        this.fetchOperationData(operationNum);
+                    }
+                }, 500); // 500ms delay
+            });
+        }
     }
 
     /**
@@ -308,7 +335,117 @@ class InvoicesModalManager {
     _selectOperation(operation) {
         if (this.operationNumInput) {
             this.operationNumInput.value = operation.operation_num || '';
+            // Trigger auto-fill when operation is selected from the modal
+            this.fetchOperationData(operation.operation_num);
         }
+    }
+
+    /**
+     * Fetches operation data from the server and auto-fills the form
+     * @param {string} operationNum - The operation number to fetch
+     */
+    async fetchOperationData(operationNum) {
+        try {
+            const response = await fetch(`/ajax/operations/${operationNum}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch operation data.');
+            }
+            const result = await response.json();
+            if (result.success) {
+                this.populateModalFields(result.data);
+            } else {
+                console.error('Error from server:', result.error);
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+        }
+    }
+
+    /**
+     * Populates modal fields with operation data
+     * @param {Object} data - The operation data
+     */
+    populateModalFields(data) {
+        // Auto-fill client if available
+        if (data.client_name && this.clientDropdownButtonText && this.clientNameInput) {
+            this.clientDropdownButtonText.textContent = data.client_name;
+            this.clientDropdownButtonText.classList.remove('text-gray-500');
+            this.clientDropdownButtonText.classList.add('text-gray-900', 'dark:text-white');
+            this.clientNameInput.value = data.client_name;
+            
+            // Also set client ID if available
+            if (data.client_id && this.clientIdInput) {
+                this.clientIdInput.value = data.client_id;
+            }
+        }
+
+        // Auto-fill operation date if available
+        const operationDateInput = document.getElementById('operationDate');
+        if (data.operation_date && operationDateInput) {
+            // Convert date to YYYY-MM-DD format for date input
+            const date = new Date(data.operation_date);
+            if (!isNaN(date.getTime())) {
+                operationDateInput.value = date.toISOString().split('T')[0];
+            }
+        }
+
+        // Auto-fill operation-specific fields (not product-specific)
+        const operationFieldMappings = {
+            'description': data.description,
+            'reference': data.reference  // This maps to the Reference field in Shipment Details
+        };
+
+        Object.entries(operationFieldMappings).forEach(([fieldId, value]) => {
+            const field = document.getElementById(fieldId);
+            if (field && value) {
+                field.value = value;
+            }
+        });
+
+        // Auto-fill shipper and receiver cities if we have sender field mapping
+        if (data.shipper_city) {
+            const senderField = document.getElementById('sender');
+            if (senderField) {
+                senderField.value = data.shipper_city;
+            }
+        }
+
+        console.log('Auto-filled form with operation data:', data.operation_num);
+    }
+
+    /**
+     * Processes and structures product data for backend submission
+     * @param {Object} data - The form data object to modify
+     */
+    processProductsData(data) {
+        // Create products array with the shipment details
+        const products = [{
+            refrence: data.refrence || "",
+            sender: data.sender || "",
+            merchandise: data.merchandise || "",
+            incoterm: data.incoterm || "",
+            operation_date: data.operation_date || "",
+            arrival_date: data.arrival_date || "",
+            trailern: data.trailern || "",
+            n_pack: data.n_pack || "",
+            gross_weight: data.gross_weight || ""
+        }];
+
+        // Add the structured products array to the data
+        data.products = products;
+
+        // Remove the individual product fields from the main data object
+        // as they are now included in the products array
+        delete data.refrence;
+        delete data.sender;
+        delete data.merchandise;
+        delete data.incoterm;
+        delete data.arrival_date;
+        delete data.trailern;
+        delete data.n_pack;
+        delete data.gross_weight;
+
+        console.log('Structured products data:', products);
     }
 
     /**
@@ -402,6 +539,8 @@ class InvoicesModalManager {
      * @param {Object} invoice - The invoice data to populate the form with.
      */
     async openForEdit(invoice) {
+        console.log('openForEdit called with invoice:', invoice); // Debug log
+        
         if (!this.modal) {
             await this._waitForModal();
         }
@@ -409,10 +548,15 @@ class InvoicesModalManager {
             console.error('Cannot open modal: Modal not initialized');
             // Fallback: show modal without Flowbite
             this.modalElement.classList.remove('hidden');
+            this.currentInvoiceId = invoice.inv_id; // Use inv_id instead of id
+            this.title.textContent = 'Edit Invoice';
+            this._resetForm();
             this._populateForm(invoice);
             return;
         }
-        this.currentInvoiceId = invoice.id;
+        
+        console.log('Opening modal for edit, invoice ID:', invoice.inv_id); // Debug log
+        this.currentInvoiceId = invoice.inv_id; // Use inv_id instead of id for backend operations
         this.title.textContent = 'Edit Invoice';
         this._resetForm();
         this._populateForm(invoice);
@@ -461,14 +605,62 @@ class InvoicesModalManager {
      * @private
      */
     _populateForm(invoice) {
+        // First, populate standard fields
         for (const key in invoice) {
             const input = this.form.elements[key];
-            if (input) {
+            if (input && key !== 'products') { // Skip products for special handling
                 if (input.type === 'date' && invoice[key]) {
                     input.value = new Date(invoice[key]).toISOString().split('T')[0];
                 } else {
                     input.value = invoice[key];
                 }
+            }
+        }
+
+        // Handle products data - decode base64 JSON and populate individual fields
+        if (invoice.products) {
+            try {
+                let productsData;
+                
+                // Check if products is already an array (from frontend) or base64 string (from database)
+                if (typeof invoice.products === 'string') {
+                    // Decode base64 and parse JSON
+                    const decodedProducts = atob(invoice.products);
+                    productsData = JSON.parse(decodedProducts);
+                } else if (Array.isArray(invoice.products)) {
+                    productsData = invoice.products;
+                }
+
+                // If we have products data and it's an array with at least one item
+                if (productsData && Array.isArray(productsData) && productsData.length > 0) {
+                    const productData = productsData[0]; // Get first product data
+                    
+                    // Map product fields to form inputs
+                    const productFieldMappings = {
+                        'refrence': 'refrence',
+                        'sender': 'sender', 
+                        'merchandise': 'merchandise',
+                        'incoterm': 'incoterm',
+                        'arrival_date': 'arrival_date',
+                        'trailern': 'trailern',
+                        'n_pack': 'n_pack',
+                        'gross_weight': 'gross_weight'
+                    };
+
+                    // Populate product fields
+                    Object.entries(productFieldMappings).forEach(([productField, formField]) => {
+                        const input = this.form.elements[formField];
+                        if (input && productData[productField] !== undefined) {
+                            if (input.type === 'date' && productData[productField]) {
+                                input.value = new Date(productData[productField]).toISOString().split('T')[0];
+                            } else {
+                                input.value = productData[productField] || '';
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error parsing products data for editing:', error);
             }
         }
 
@@ -481,6 +673,11 @@ class InvoicesModalManager {
             if (this.clientNameInput) {
                 this.clientNameInput.value = invoice.client;
             }
+        }
+
+        // Update client ID if available
+        if (invoice.client_id && this.clientIdInput) {
+            this.clientIdInput.value = invoice.client_id;
         }
     }
 }
