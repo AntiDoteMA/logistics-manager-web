@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Operations Management{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Operations Management</h1>
+    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Manage your business operations, logistics, and transport coordination</p>
+</div>
+
+<!-- Action Buttons -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 space-y-3 sm:space-y-0">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Operations List</h2>
+        <div class="flex flex-wrap gap-2">
+            <button id="addOperationBtn" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Operation
+            </button>
+            <button id="refreshBtn" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-800">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+    <div class="p-4">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Filters</h3>        <!-- Client Selection -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            <div>
+                <label for="clientFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client</label>
+                <div class="relative">
+                    <!-- Dropdown Button -->
+                    <button id="clientFilterDropdownButton" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-white text-left flex items-center justify-between client-filter-dropdown-button" type="button">
+                        <span id="clientFilterDropdownButtonText" class="text-gray-500">All Clients</span>
+                        <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                        </svg>
+                    </button>
+                    
+                    <!-- Hidden input to store the selected client -->
+                    <input type="hidden" id="clientFilter" name="client_filter">
+                    
+                    <!-- Dropdown menu -->
+                    <div id="clientFilterDropdown" class="client-filter-dropdown-menu hidden">
+                        <div class="p-3">
+                            <label for="clientFilterSearchInput" class="sr-only">Search</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                    </svg>
+                                </div>
+                                <input type="text" id="clientFilterSearchInput" class="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search clients...">
+                            </div>
+                        </div>
+                        <ul id="clientFilterDropdownList" class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                            <!-- Client options will be populated via JavaScript -->
+                            <li class="text-center py-2 text-gray-500 dark:text-gray-400">Loading clients...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>            <div>
+                <label for="vendorFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vendor</label>
+                <div class="relative">
+                    <!-- Dropdown Button -->
+                    <button id="vendorFilterDropdownButton" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-white text-left flex items-center justify-between vendor-filter-dropdown-button" type="button">
+                        <span id="vendorFilterDropdownButtonText" class="text-gray-500">All Vendors</span>
+                        <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                        </svg>
+                    </button>
+                    
+                    <!-- Hidden input to store the selected vendor -->
+                    <input type="hidden" id="vendorFilter" name="vendor_filter">
+                    
+                    <!-- Dropdown menu -->
+                    <div id="vendorFilterDropdown" class="vendor-filter-dropdown-menu hidden">
+                        <div class="p-3">
+                            <label for="vendorFilterSearchInput" class="sr-only">Search</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                    </svg>
+                                </div>
+                                <input type="text" id="vendorFilterSearchInput" class="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search vendors...">
+                            </div>
+                        </div>
+                        <ul id="vendorFilterDropdownList" class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                            <!-- Vendor options will be populated via JavaScript -->
+                            <li class="text-center py-2 text-gray-500 dark:text-gray-400">Loading vendors...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label for="statusFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500">
+                    <option value="">All Status</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="not confirmed">Not Confirmed</option>
+                </select>
+            </div>
+            <div>
+                <label for="dateFromFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date From</label>
+                <input type="date" id="dateFromFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="dateToFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date To</label>
+                <input type="date" id="dateToFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="operationIdFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Operation ID</label>
+                <input type="text" id="operationIdFilter" placeholder="OP-..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500">
+            </div>
+            <div class="flex items-end">
+                <div class="flex gap-2 w-full">
+                    <button id="applyFiltersBtn" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200">Apply</button>
+                    <button id="resetFiltersBtn" class="flex-1 px-3 py-2 bg-gray-400 hover:bg-gray-500 text-white text-sm font-medium rounded-lg transition-colors duration-200">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Operations Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                    <th scope="col" class="px-4 py-3">OP ID</th>
+                    <th scope="col" class="px-4 py-3">Operation #</th>
+                    <th scope="col" class="px-4 py-3">Client</th>
+                    <th scope="col" class="px-4 py-3">Date</th>
+                    <th scope="col" class="px-4 py-3">Description</th>
+                    <th scope="col" class="px-4 py-3">Reference</th>
+                    <th scope="col" class="px-4 py-3">Flux</th>
+                    <th scope="col" class="px-4 py-3">Positioning Date</th>
+                    <th scope="col" class="px-4 py-3">Shipper City</th>
+                    <th scope="col" class="px-4 py-3">Receiver City</th>
+                    <th scope="col" class="px-4 py-3">Loading Date</th>
+                    <th scope="col" class="px-4 py-3">ETA</th>
+                    <th scope="col" class="px-4 py-3">Unloading Date</th>
+                    <th scope="col" class="px-4 py-3">Vendor</th>
+                    <th scope="col" class="px-4 py-3">SR</th>
+                    <th scope="col" class="px-4 py-3">CMR</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                </tr>
+            </thead>            <tbody id="operationsTableBody" class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                <!-- Operations data will be populated via JavaScript -->
+                <tr id="loadingRow" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td colspan="18" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center justify-center">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading operations...
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Operation Modal -->
+<div id="operationModal" tabindex="-1" class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center w-full h-full">
+    <div class="relative p-4 w-full max-w-4xl">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="modalTitle">
+                    Add Operation
+                </h3>
+                <button type="button" id="closeModalBtn" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <div class="p-4 md:p-5">
+                <form id="operationForm" class="space-y-4">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Hidden ID field -->
+                        <input type="hidden" id="operationId" name="operation_id">
+                        
+                        <!-- Operation Number -->
+                        <div>
+                            <label for="operationNum" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Operation Number</label>
+                            <input type="text" id="operationNum" name="operation_num" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Auto-generated">
+                        </div>
+                        <!-- Client Name -->
+                        <div>
+                            <label for="clientName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client Name *</label>                            <div class="relative">
+                                <!-- Dropdown Button -->
+                                <button id="clientDropdownButton" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-white text-left flex items-center justify-between client-dropdown-button" type="button">
+                                    <span id="clientDropdownButtonText" class="text-gray-500">Select a client...</span>
+                                    <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                                    </svg>
+                                </button>
+                                
+                                <!-- Hidden input to store the selected client name -->
+                                <input type="hidden" id="clientName" name="client_name" required>
+                                
+                                <!-- Dropdown menu -->
+                                <div id="clientDropdown" class="client-dropdown-menu hidden">
+                                    <div class="p-3">
+                                        <label for="clientSearchInput" class="sr-only">Search</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                                </svg>
+                                            </div>
+                                            <input type="text" id="clientSearchInput" class="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search clients...">
+                                        </div>
+                                    </div>
+                                    <ul id="clientDropdownList" class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                                        <!-- Client options will be populated via JavaScript -->
+                                        <li class="text-center py-2 text-gray-500 dark:text-gray-400">Loading clients...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Operation Date -->
+                        <div>
+                            <label for="operationDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Operation Date *</label>
+                            <input type="date" id="operationDate" name="operation_date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="md:col-span-2 lg:col-span-3">
+                            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                            <textarea id="description" name="description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Operation description..."></textarea>
+                        </div>
+                        
+                        <!-- Reference -->
+                        <div>
+                            <label for="reference" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference</label>
+                            <input type="text" id="reference" name="reference" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Flux -->
+                        <div>
+                            <label for="flux" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Flux</label>
+                            <select id="flux" name="flux" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="">Select Flux</option>
+                                <option value="Import">Import</option>
+                                <option value="Export">Export</option>
+                                <option value="Transit">Transit</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Positioning Date -->
+                        <div>
+                            <label for="positioningDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positioning Date</label>
+                            <input type="date" id="positioningDate" name="positioning_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Shipper City -->
+                        <div>
+                            <label for="shipperCity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shipper City</label>
+                            <input type="text" id="shipperCity" name="shipper_city" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Receiver City -->
+                        <div>
+                            <label for="receiverCity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Receiver City</label>
+                            <input type="text" id="receiverCity" name="receiver_city" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Loading Date -->
+                        <div>
+                            <label for="loadingDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loading Date</label>
+                            <input type="date" id="loadingDate" name="loading_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- ETA -->
+                        <div>
+                            <label for="eta" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ETA</label>
+                            <input type="datetime-local" id="eta" name="eta" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Unloading Date -->
+                        <div>
+                            <label for="unloadingDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unloading Date</label>
+                            <input type="datetime-local" id="unloadingDate" name="unloading_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                          <!-- Vendor Name -->
+                        <div>
+                            <label for="vendorName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vendor Name</label>
+                            <div class="relative">
+                                <!-- Dropdown Button -->
+                                <button id="vendorDropdownButton" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-white text-left flex items-center justify-between vendor-dropdown-button" type="button">
+                                    <span id="vendorDropdownButtonText" class="text-gray-500">Select a vendor...</span>
+                                    <svg class="w-2.5 h-2.5 ml-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                                    </svg>
+                                </button>
+                                
+                                <!-- Hidden input to store the selected vendor name -->
+                                <input type="hidden" id="vendorName" name="vendor_name">
+                                
+                                <!-- Dropdown menu -->
+                                <div id="vendorDropdown" class="vendor-dropdown-menu hidden">
+                                    <div class="p-3">
+                                        <label for="vendorSearchInput" class="sr-only">Search</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                                </svg>
+                                            </div>
+                                            <input type="text" id="vendorSearchInput" class="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search vendors...">
+                                        </div>
+                                    </div>
+                                    <ul id="vendorDropdownList" class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                                        <!-- Vendor options will be populated via JavaScript -->
+                                        <li class="text-center py-2 text-gray-500 dark:text-gray-400">Loading vendors...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- SR -->
+                        <div>
+                            <label for="sr" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SR</label>
+                            <input type="text" id="sr" name="sr" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- CMR -->
+                        <div>
+                            <label for="cmr" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CMR</label>
+                            <input type="text" id="cmr" name="cmr" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        
+                        <!-- Status -->
+                        <div>
+                            <label for="isConfirmed" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                            <select id="isConfirmed" name="is_confirmed" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="false">Not Confirmed</option>
+                                <option value="true">Confirmed</option>
+                            </select>
+                        </div>                    </div>                    <!-- Modal footer -->
+                    <div class="flex items-center p-4 md:p-5 rounded-b dark:border-gray-600">
+                        <button type="submit" id="saveOperationBtn" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                            Save Operation
+                        </button>
+                        <button id="cancelModalBtn" type="button" class="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" tabindex="-1" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <button type="button" id="closeDeleteModalBtn" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                </svg>
+                <span class="sr-only">Close modal</span>
+            </button>
+            <div class="p-4 md:p-5 text-center">
+                <svg class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                </svg>
+                <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400" id="deleteOperationInfo">Are you sure you want to delete this operation?</h3>
+                <button id="confirmDeleteBtn" type="button" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
+                    Yes, I'm sure
+                </button>
+                <button id="cancelDeleteBtn" type="button" class="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+                    No, cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Include Flowbite JS for modal and toast components -->
+<script src="https://unpkg.com/flowbite@1.8.0/dist/flowbite.min.js"></script>
+
+<!-- Include operations management JavaScript -->
+<script type="module" src="{{ url_for('static', filename='js/operations.js') }}"></script>
+{% endblock %}

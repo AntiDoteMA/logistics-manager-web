@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Home - IRAMED Logistics{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <!-- Welcome Card -->
+    <div class="border-2 border-dashed border-gray-300 rounded-lg dark:border-gray-600 h-32 md:h-64">
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fas fa-home text-4xl text-gray-400 mb-4"></i>            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Welcome</h3>
+            <p class="text-gray-500 dark:text-gray-400">to IRAMED Logistics</p>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="border-2 border-dashed border-gray-300 rounded-lg dark:border-gray-600 h-32 md:h-64">
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fas fa-chart-line text-4xl text-blue-500 mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Analytics</h3>
+            <p class="text-gray-500 dark:text-gray-400">View your stats</p>
+        </div>
+    </div>
+    
+    <div class="border-2 border-dashed border-gray-300 rounded-lg dark:border-gray-600 h-32 md:h-64">
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fas fa-users text-4xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Users</h3>
+            <p class="text-gray-500 dark:text-gray-400">Manage users</p>
+        </div>
+    </div>
+    
+    <div class="border-2 border-dashed border-gray-300 rounded-lg dark:border-gray-600 h-32 md:h-64">
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fas fa-box text-4xl text-purple-500 mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Products</h3>
+            <p class="text-gray-500 dark:text-gray-400">View inventory</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 h-96 mb-4">
+    <div class="p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center">                <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    Welcome to IRAMED Logistics Dashboard
+                </h1>
+                <p class="text-xl text-gray-600 dark:text-gray-300 mb-8">
+                    Built with Flask and Tailwind CSS - Modern, responsive, and feature-rich business management system
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <div class="text-center">
+                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white mb-4">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Fast Setup</h3>
+                            <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
+                                Get started quickly with pre-built components
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <div class="text-center">
+                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-md bg-green-500 text-white mb-4">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Responsive</h3>
+                            <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
+                                Works perfectly on all devices
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <div class="text-center">
+                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-md bg-purple-500 text-white mb-4">
+                                <i class="fas fa-palette"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Customizable</h3>
+                            <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
+                                Easy to customize and extend
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-2 gap-4">
+    <div class="border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 h-48 md:h-72">
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fas fa-plus-circle text-5xl text-blue-500 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Quick Actions</h3>            <div class="space-y-2">
+                <a href="{{ url_for('auth.login') }}" class="block px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Login
+                </a>
+                <a href="{{ url_for('main.users') }}" class="block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                    Add User
+                </a>
+                <a href="{{ url_for('main.products') }}" class="block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                    Add Product
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 h-48 md:h-72">
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fas fa-chart-pie text-5xl text-green-500 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Recent Activity</h3>
+            <div class="text-center text-gray-500 dark:text-gray-400">
+                <p>• User John Doe logged in</p>
+                <p>• New product added</p>
+                <p>• Settings updated</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

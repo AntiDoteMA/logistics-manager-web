@@ -12,7 +12,7 @@ This document serves as the **PRIMARY INSTRUCTION GUIDE** for AI Workers operati
 1. **ALWAYS start by reading any `*.inprocess.ai.md` files in the project root**
 2. These files contain the **MOST CURRENT** instructions and project state
 3. `.inprocess.ai.md` files **SUPERSEDE ALL OTHER DOCUMENTATION**
-4. Currently active: `AI-Instructions.inprocess.ai.md`
+4. Currently active: `AI-Instructions.V6.inprocess.ai.md` (Latest - June 26, 2025)
 
 ---
 
@@ -23,7 +23,7 @@ This document serves as the **PRIMARY INSTRUCTION GUIDE** for AI Workers operati
 #### **1. `.inprocess.ai.md` - ACTIVE INSTRUCTIONS** 
 - **Priority:** 🔴 **HIGHEST** - Read FIRST, always
 - **Purpose:** Current active development instructions
-- **Current File:** `AI-Instructions.inprocess.ai.md`
+- **Current File:** `AI-Instructions.V6.inprocess.ai.md` (Latest - June 26, 2025)
 - **Contains:** 
   - Current project state and completion status
   - Modular architecture guidelines
@@ -34,7 +34,7 @@ This document serves as the **PRIMARY INSTRUCTION GUIDE** for AI Workers operati
 #### **2. `*SUMMARY*.ai.md` - PROJECT STATE DOCUMENTATION**
 - **Priority:** 🟡 **MEDIUM** - Reference for context
 - **Files:**
-  - `CURRENT_PROJECT_SUMMARY.ai.md` - Current modular architecture state
+  - `CURRENT_PROJECT_SUMMARY.V6.ai.md` - **CURRENT** modular architecture state (June 26, 2025)
   - `PROJECT_FILE_SUMMARY.ai.md` - File structure and modularization details
 - **Contains:**
   - Project structure before/after modularization
@@ -56,8 +56,8 @@ This document serves as the **PRIMARY INSTRUCTION GUIDE** for AI Workers operati
 ## 🎯 **PRIORITY READING ORDER**
 
 ### **Phase 1: Essential (MUST READ)**
-1. 🔴 `AI-Instructions.inprocess.ai.md` - **CURRENT ACTIVE INSTRUCTIONS**
-2. 🟡 `CURRENT_PROJECT_SUMMARY.ai.md` - Project architecture overview
+1. 🔴 `AI-Instructions.V6.inprocess.ai.md` - **CURRENT ACTIVE INSTRUCTIONS** (Latest - June 26, 2025)
+2. 🟡 `CURRENT_PROJECT_SUMMARY.V6.ai.md` - **CURRENT PROJECT STATE** (Latest - June 26, 2025)
 
 ### **Phase 2: Context (READ AS NEEDED)**
 3. 🟡 `PROJECT_FILE_SUMMARY.ai.md` - Detailed file structure
@@ -208,24 +208,20 @@ When working with database operations, consider using:
 
 ---
 
-## 🎯 **CURRENT PROJECT STATUS (as of June 23, 2025)**
+## 🎯 **CURRENT PROJECT STATUS (as of June 26, 2025)**
 
-### **✅ COMPLETED MODULES**
-- ✅ Complete modular architecture implementation
-- ✅ All 8 business modules mostly operational (some functionality and bugs still need work,refer to AI-Instructions.inprocess.ai.md)
-   - Some functionality gaps to fill
-   - Bugs that need to be fixed
-   - Features that may need completion or refinement
-- ✅ Service and API layer separation
-- ✅ Blueprint routing system
-- ✅ Authentication and user management
-- ✅ Database integration and CRUD operations
+### **✅ COMPLETED ARCHITECTURE**
+- ✅ Complete backend modular architecture (100%)
+- ✅ Frontend modular architecture established (Operations module complete)
+- ✅ API service refactoring complete (generic vs. page-specific separation)
+- ✅ 2 of 8 business modules fully operational (25% complete)
+- ✅ Operations module serves as proven template for all others
 
 ### **📋 ACTIVE PRIORITIES**
-- 🔄 Maintain modular architecture standards
-- 🔄 Implement new features using established patterns
-- 🔄 Optimize for production deployment
-- 🔄 Add comprehensive API documentation
+- 🔄 Apply proven Operations modular pattern to remaining 6 modules
+- 🔄 Create page-specific API services (InvoicesApiService, ClientsApiService, etc.)
+- 🔄 Migrate existing JavaScript to established modular architecture
+- 🔄 Maintain consistency with working Operations template
 
 ---
 
